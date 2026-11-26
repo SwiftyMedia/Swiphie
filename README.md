@@ -78,8 +78,13 @@ validation records for CI
 SwiftyTube reads the registry from:
 
 ```text
-https://raw.githubusercontent.com/SwiftyMedia/Swiphie/main/registry/player_configs.json
+https://raw.githubusercontent.com/SwiftyMedia/Swiphie/config.json/registry/player_configs.json
 ```
+
+The `config.json` tag is a moving tag updated by CI whenever the validated
+registry changes. This lets SwiftyTube receive cipher updates without a new
+SwiftyTube package release. The bundled SwiftyTube file remains an offline
+fallback
 
 ## Validation
 
@@ -114,9 +119,8 @@ Cookie files and environment secrets are ignored by Git
 `.github/workflows/probe-player.yml` probes YouTube once every 24 hours and
 publishes only when a validated registry change is found
 
-Add a `SWIFTYTUBE_TOKEN` repository secret with Contents write access to the
-`SwiftyMedia/SwiftyTube` repository so the workflow can update its bundled
-fallback table
+The workflow needs Contents write access to move the `config.json` tag in
+Swiphie. No SwiftyTube repository token is required for config publishing
 
 ## License
 

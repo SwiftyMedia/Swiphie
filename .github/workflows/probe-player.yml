@@ -16,7 +16,7 @@ on:
         type: boolean
         default: false
       force_deploy:
-        description: "Publish validated changes to Swiphie and SwiftyTube"
+        description: "Publish validated changes to Swiphie"
         required: false
         type: boolean
         default: true
@@ -107,24 +107,8 @@ jobs:
           git commit -m "Update YouTube player configs"
           git push
 
-      - name: Checkout SwiftyTube
-        uses: actions/checkout@v4
-        with:
-          repository: SwiftyMedia/SwiftyTube
-          token: ${{ secrets.SWIFTYTUBE_TOKEN }}
-          path: swiftytube
-
-      - name: Sync SwiftyTube bundled registry
+      - name: Update moving config tag
         run: |
           set -euo pipefail
-          cp registry/player_configs.json swiftytube/SwiftyTube/player_configs.json
-          cd swiftytube
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add SwiftyTube/player_configs.json
-          if git diff --cached --quiet; then
-            echo "SwiftyTube registry is already current."
-            exit 0
-          fi
-          git commit -m "Update bundled player configs"
-          git push
+          git tag -f config.json "$(git rev-parse HEAD)"
+          git push origin refs/tags/config.json --force
