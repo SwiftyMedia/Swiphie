@@ -1,0 +1,39 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100/
+.Trashes/
+.DocumentRevisions-V100/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local secrets and runtime files
+.env
+.env.*
+!.env.example
+innertube_cookie.txt
+*.tmp
+*.log
+
+# Editors and local tooling
+.idea/
+.vscode/

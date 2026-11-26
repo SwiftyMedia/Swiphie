@@ -1,0 +1,130 @@
+name: Probe player
+
+on:
+  schedule:
+    # Run once every day at 17 minutes past midnight UTC
+    - cron: "17 0 * * *"
+  workflow_dispatch:
+    inputs:
+      player_hash:
+        description: "Optional 8-hex player hash to probe"
+        required: false
+        type: string
+      check_only:
+        description: "Only report new players (write nothing)"
+        required: false
+        type: boolean
+        default: false
+      force_deploy:
+        description: "Publish validated changes to Swiphie and SwiftyTube"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swiphie-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Derive and validate (read-only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Probe
+        env:
+          YT_COOKIE: ${{ secrets.YT_COOKIE }}
+          YT_VISITOR_DATA: ${{ secrets.YT_VISITOR_DATA }}
+          YT_DATASYNC_ID: ${{ secrets.YT_DATASYNC_ID }}
+          SWIPHIE_DISCORD_WEBHOOK: ${{ secrets.SWIPHIE_DISCORD_WEBHOOK }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -n "${{ inputs.player_hash }}" ]; then
+            args+=(--hash "${{ inputs.player_hash }}")
+          fi
+          if [ "${{ inputs.check_only }}" = "true" ]; then
+            args+=(--check)
+          fi
+          python -m swiphie probe "${args[@]}" --json | tee probe-result.json
+
+      - name: Verify artifacts
+        run: python -m swiphie verify
+
+      - name: Upload registry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registry
+          path: registry
+          if-no-files-found: warn
+          retention-days: 7
+
+  publish:
+    name: Publish validated configs
+    needs: probe
+    if: github.event_name == 'schedule' || vars.AUTO_DEPLOY_CONFIG == 'true' || inputs.force_deploy == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: registry
+          path: registry
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify downloaded artifacts
+        run: python -m swiphie verify
+
+      - name: Commit Swiphie registry
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add registry
+          if git diff --cached --quiet; then
+            echo "No registry changes."
+            exit 0
+          fi
+          git commit -m "Update YouTube player configs"
+          git push
+
+      - name: Checkout SwiftyTube
+        uses: actions/checkout@v4
+        with:
+          repository: SwiftyMedia/SwiftyTube
+          token: ${{ secrets.SWIFTYTUBE_TOKEN }}
+          path: swiftytube
+
+      - name: Sync SwiftyTube bundled registry
+        run: |
+          set -euo pipefail
+          cp registry/player_configs.json swiftytube/SwiftyTube/player_configs.json
+          cd swiftytube
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add SwiftyTube/player_configs.json
+          if git diff --cached --quiet; then
+            echo "SwiftyTube registry is already current."
+            exit 0
+          fi
+          git commit -m "Update bundled player configs"
+          git push

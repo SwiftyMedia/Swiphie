@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "swiphie"
+version = "0.0.1"
+description = "Remote YouTube player configuration registry for SwiftyTube"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "SwiftyMedia" }]
+keywords = ["youtube", "innertube", "cipher", "swiftytube", "player"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Internet :: WWW/HTTP",
+]
+
+[project.scripts]
+swiphie = "swiphie.cli:main"
+
+[tool.setuptools]
+packages = ["swiphie"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+swiphie = ["js/*.mjs"]
